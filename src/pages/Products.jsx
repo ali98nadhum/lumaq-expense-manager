@@ -16,9 +16,13 @@ const Products = () => {
         costPrice: '',
         sellingPrice: '',
         supplier: '',
-        stock: ''
+        stock: '',
+        expiryDate: '',
+        barcode: '',
+        lowStockThreshold: 5
     });
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -44,17 +48,31 @@ const Products = () => {
                 costPrice: product.costPrice,
                 sellingPrice: product.sellingPrice,
                 supplier: product.supplier || '',
-                stock: product.stock
+                stock: product.stock,
+                expiryDate: product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : '',
+                barcode: product.barcode || '',
+                lowStockThreshold: product.lowStockThreshold || 5
             });
         } else {
             setEditMode(false);
-            setFormData({ id: null, name: '', costPrice: '', sellingPrice: '', supplier: '', stock: '' });
+            setFormData({
+                id: null,
+                name: '',
+                costPrice: '',
+                sellingPrice: '',
+                supplier: '',
+                stock: '',
+                expiryDate: '',
+                barcode: '',
+                lowStockThreshold: 5
+            });
         }
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         try {
             if (editMode) {
                 await api.put(`/products/${formData.id}`, formData);
@@ -67,6 +85,8 @@ const Products = () => {
             fetchProducts();
         } catch (error) {
             showToast('فشل حفظ المنتج', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -105,6 +125,7 @@ const Products = () => {
                             <th style={{ padding: '1rem' }}>سعر البيع</th>
                             <th style={{ padding: '1rem' }}>هامش الربح</th>
                             <th style={{ padding: '1rem' }}>الكمية</th>
+                            <th style={{ padding: '1rem' }}>انتهاء الصلاحية</th>
                             <th style={{ padding: '1rem' }}>المورد</th>
                             <th style={{ padding: '1rem' }}>إجراءات</th>
                         </tr>
@@ -130,10 +151,23 @@ const Products = () => {
                                         </td>
                                         <td style={{ padding: '1rem' }}>
                                             {p.stock > 0 ? (
-                                                <span style={{ color: p.stock < 5 ? 'var(--accent-gold)' : 'inherit' }}>{p.stock} قطعة</span>
+                                                <div className="flex flex-col">
+                                                    <span style={{ color: p.stock <= p.lowStockThreshold ? 'var(--accent-red)' : 'inherit', fontWeight: p.stock <= p.lowStockThreshold ? 'bold' : 'normal' }}>
+                                                        {p.stock} قطعة
+                                                    </span>
+                                                    {p.stock <= p.lowStockThreshold && <span style={{ fontSize: '0.7rem', color: 'var(--accent-red)' }}>مخزون منخفض!</span>}
+                                                </div>
                                             ) : (
                                                 <span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>نفذت الكمية</span>
                                             )}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {p.expiryDate ? (
+                                                <div style={{ color: new Date(p.expiryDate) < new Date() ? 'var(--accent-red)' : 'inherit' }}>
+                                                    {new Date(p.expiryDate).toLocaleDateString('ar-IQ')}
+                                                    {new Date(p.expiryDate) < new Date() && <div style={{ fontSize: '0.7rem', color: 'var(--accent-red)' }}>منتهي!</div>}
+                                                </div>
+                                            ) : '-'}
                                         </td>
                                         <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{p.supplier || '-'}</td>
                                         <td style={{ padding: '1rem' }}>
@@ -213,7 +247,41 @@ const Products = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>حفظ</button>
+                    <div className="flex gap-md">
+                        <div className="input-group" style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>تاريخ الانتهاء</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={formData.expiryDate}
+                                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                            />
+                        </div>
+                        <div className="input-group" style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>حد المخزون المنخفض</label>
+                            <input
+                                type="number"
+                                className="input"
+                                value={formData.lowStockThreshold}
+                                onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
+                                min="1"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>الباركود</label>
+                        <input
+                            type="text"
+                            className="input"
+                            value={formData.barcode}
+                            onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                        />
+                    </div>
+
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
+                        {isSubmitting ? 'جاري الحفظ...' : 'حفظ'}
+                    </button>
                 </form>
             </Modal>
         </div>

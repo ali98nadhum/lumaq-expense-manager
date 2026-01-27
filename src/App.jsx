@@ -10,6 +10,7 @@ import Expenses from './pages/Expenses';
 import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Reports from './pages/Reports';
+import Customers from './pages/Customers';
 
 function App() {
   return (
@@ -46,6 +47,12 @@ function App() {
             <Route path="/products" element={
               <PrivateRoute>
                 <Layout><Products /></Layout>
+              </PrivateRoute>
+            } />
+
+            <Route path="/customers" element={
+              <PrivateRoute>
+                <Layout><Customers /></Layout>
               </PrivateRoute>
             } />
 

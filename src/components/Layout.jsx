@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Banknote, Package, LogOut, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Banknote, Package, LogOut, FileText, Users } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const { logout, user } = useAuth();
@@ -11,6 +11,7 @@ const Layout = ({ children }) => {
         { path: '/reports', label: 'التقارير السنوية', icon: <FileText size={20} /> },
         { path: '/expenses', label: 'المصاريف', icon: <Banknote size={20} /> },
         { path: '/orders', label: 'الطلبات', icon: <ShoppingCart size={20} /> },
+        { path: '/customers', label: 'الزبائن', icon: <Users size={20} /> },
         { path: '/products', label: 'المنتجات', icon: <Package size={20} /> },
     ];
 

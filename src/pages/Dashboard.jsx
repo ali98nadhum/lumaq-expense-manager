@@ -28,20 +28,45 @@ ChartJS.register(
 
 const Dashboard = () => {
     const [stats, setStats] = useState(null);
+    const [topProducts, setTopProducts] = useState([]);
+    const [period, setPeriod] = useState('month');
     const [loading, setLoading] = useState(true);
+    const [topLoading, setTopLoading] = useState(false);
 
     useEffect(() => {
         fetchStats();
     }, []);
 
+    useEffect(() => {
+        fetchTopProducts();
+    }, [period]);
+
     const fetchStats = async () => {
         try {
-            const { data } = await api.get('/reports/dashboard');
-            setStats(data.data);
+            const [dashboardRes, yearlyRes] = await Promise.all([
+                api.get('/reports/dashboard'),
+                api.get('/reports/yearly')
+            ]);
+            setStats({
+                ...dashboardRes.data.data,
+                yearly: yearlyRes.data.data
+            });
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchTopProducts = async () => {
+        setTopLoading(true);
+        try {
+            const { data } = await api.get(`/reports/performance?period=${period}`);
+            setTopProducts(data.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setTopLoading(false);
         }
     };
 
@@ -97,8 +122,86 @@ const Dashboard = () => {
     const currentMonthName = new Date().toLocaleString('en-US', { month: 'long' });
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
             <h1 style={{ marginBottom: '2.5rem' }}>التحليل الـمالي</h1>
+
+            {/* Charts Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                <div className="card" style={{ padding: '1.5rem' }}>
+                    <h3 style={{ marginBottom: '1rem' }}>اتجاه المبيعات (الربح الصافي)</h3>
+                    <div style={{ height: '300px' }}>
+                        <Line
+                            data={{
+                                labels: stats.yearly.slice(-6).map(m => m.monthName),
+                                datasets: [{
+                                    label: 'الربح الصافي',
+                                    data: stats.yearly.slice(-6).map(m => m.profit),
+                                    borderColor: '#fbbf24',
+                                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            }}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: true } }
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="card" style={{ padding: '1.5rem' }}>
+                    <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0 }}>الأكثر مبيعاً 🔥</h3>
+                        <div className="flex gap-xs" style={{ background: 'rgba(255,255,255,0.05)', padding: '0.25rem', borderRadius: '8px' }}>
+                            {['today', 'week', 'month'].map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPeriod(p)}
+                                    style={{
+                                        padding: '0.2rem 0.6rem',
+                                        fontSize: '0.75rem',
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        background: period === p ? 'var(--accent-gold)' : 'transparent',
+                                        color: period === p ? 'white' : 'var(--text-secondary)',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {p === 'today' ? 'اليوم' : p === 'week' ? 'إسبوع' : 'شهر'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{ height: '300px', position: 'relative' }}>
+                        {topLoading && (
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1, borderRadius: '8px' }}>
+                                <div className="animate-pulse" style={{ color: 'var(--accent-gold)' }}>جاري التحديث...</div>
+                            </div>
+                        )}
+                        <Doughnut
+                            data={{
+                                labels: topProducts.map(p => p.productName),
+                                datasets: [{
+                                    data: topProducts.map(p => p._sum.quantity),
+                                    backgroundColor: [
+                                        '#fbbf24', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6',
+                                        '#f97316', '#06b6d4', '#ec4899', '#64748b', '#475569'
+                                    ],
+                                }]
+                            }}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { family: 'Tajawal' } } } }
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
 
             {/* Sections */}
             {renderTimeframeSection('إحصائيات اليوم', today, formatDate(0))}
