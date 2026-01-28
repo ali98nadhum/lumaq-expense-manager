@@ -15,6 +15,7 @@ const Products = () => {
         name: '',
         costPrice: '',
         sellingPrice: '',
+        oldPrice: '', // New field for previous price (Sale)
         supplier: '',
         stock: '',
         expiryDate: '',
@@ -47,6 +48,7 @@ const Products = () => {
                 name: product.name,
                 costPrice: product.costPrice,
                 sellingPrice: product.sellingPrice,
+                oldPrice: product.oldPrice || '', // Load old price
                 supplier: product.supplier || '',
                 stock: product.stock,
                 expiryDate: product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : '',
@@ -60,6 +62,7 @@ const Products = () => {
                 name: '',
                 costPrice: '',
                 sellingPrice: '',
+                oldPrice: '',
                 supplier: '',
                 stock: '',
                 expiryDate: '',
@@ -74,11 +77,21 @@ const Products = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            // Prepare payload - convert empty strings to null or numbers
+            const payload = {
+                ...formData,
+                costPrice: Number(formData.costPrice),
+                sellingPrice: Number(formData.sellingPrice),
+                oldPrice: formData.oldPrice ? Number(formData.oldPrice) : null,
+                stock: Number(formData.stock),
+                lowStockThreshold: Number(formData.lowStockThreshold)
+            };
+
             if (editMode) {
-                await api.put(`/products/${formData.id}`, formData);
+                await api.put(`/products/${formData.id}`, payload);
                 showToast('تم تحديث المنتج بنجاح', 'success');
             } else {
-                await api.post('/products', formData);
+                await api.post('/products', payload);
                 showToast('تمت إضافة المنتج بنجاح', 'success');
             }
             setShowModal(false);
@@ -132,9 +145,9 @@ const Products = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="7" style={{ padding: '2rem', textAlign: 'center' }}>جاري التحميل...</td></tr>
+                            <tr><td colSpan="8" style={{ padding: '2rem', textAlign: 'center' }}>جاري التحميل...</td></tr>
                         ) : filteredProducts.length === 0 ? (
-                            <tr><td colSpan="7" style={{ padding: '2rem', textAlign: 'center' }}>لا توجد منتجات تطابق البحث</td></tr>
+                            <tr><td colSpan="8" style={{ padding: '2rem', textAlign: 'center' }}>لا توجد منتجات تطابق البحث</td></tr>
                         ) : (
                             filteredProducts.map((p) => {
                                 const profit = Number(p.sellingPrice) - Number(p.costPrice);
@@ -144,10 +157,19 @@ const Products = () => {
                                             <Package size={16} color="var(--accent-gold)" />
                                             {p.name}
                                         </td>
-                                        <td style={{ padding: '1rem' }}>{Number(p.costPrice).toLocaleString()} د.ع</td>
-                                        <td style={{ padding: '1rem' }}>{Number(p.sellingPrice).toLocaleString()} د.ع</td>
+                                        <td style={{ padding: '1rem' }}>{Number(p.costPrice).toLocaleString()}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div className="flex flex-col">
+                                                <span>{Number(p.sellingPrice).toLocaleString()}</span>
+                                                {p.oldPrice && Number(p.oldPrice) > Number(p.sellingPrice) && (
+                                                    <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                                        {Number(p.oldPrice).toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '1rem', color: profit > 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                                            {profit.toLocaleString()} د.ع
+                                            {profit.toLocaleString()}
                                         </td>
                                         <td style={{ padding: '1rem' }}>
                                             {p.stock > 0 ? (
@@ -212,7 +234,7 @@ const Products = () => {
                             />
                         </div>
                         <div className="input-group" style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>سعر البيع</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>سعر البيع الحالي</label>
                             <input
                                 type="number"
                                 className="input"
@@ -220,6 +242,17 @@ const Products = () => {
                                 onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
                                 required
                                 min="0"
+                            />
+                        </div>
+                        <div className="input-group" style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>السعر السابق (للعرض فقط)</label>
+                            <input
+                                type="number"
+                                className="input"
+                                value={formData.oldPrice}
+                                onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })}
+                                min="0"
+                                placeholder="مثلاً: 10000"
                             />
                         </div>
                     </div>

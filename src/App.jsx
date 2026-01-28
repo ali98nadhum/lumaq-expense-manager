@@ -11,6 +11,7 @@ import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Reports from './pages/Reports';
 import Customers from './pages/Customers';
+import Packages from './pages/Packages';
 
 function App() {
   return (
@@ -53,6 +54,12 @@ function App() {
             <Route path="/customers" element={
               <PrivateRoute>
                 <Layout><Customers /></Layout>
+              </PrivateRoute>
+            } />
+
+            <Route path="/packages" element={
+              <PrivateRoute>
+                <Layout><Packages /></Layout>
               </PrivateRoute>
             } />
 
